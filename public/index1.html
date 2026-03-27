@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Toxilisk — Мессенджер как Telegram</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0e1621;
+            height: 100vh;
+            overflow: hidden;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes floatGift {
+            0% { transform: scale(0.5) translateY(0); opacity: 1; }
+            100% { transform: scale(1.5) translateY(-100px); opacity: 0; }
+        }
+        .app { display: flex; height: 100vh; }
+        .sidebar {
+            width: 320px;
+            background: #17212b;
+            border-right: 1px solid #2c3e4e;
+            display: flex;
+            flex-direction: column;
+        }
+        .user-header {
+            padding: 16px;
+            border-bottom: 1px solid #2c3e4e;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+        }
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-size: cover;
+            background-color: #2c7df7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .user-info { flex: 1; }
+        .user-name { font-weight: 600; }
+        .user-login { font-size: 12px; color: #8e9eab; }
+        .btn-icon {
+            background: #2c7df7;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #2c3e4e;
+        }
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            cursor: pointer;
+            color: #8e9eab;
+            font-size: 14px;
+        }
+        .tab.active {
+            color: #2c7df7;
+            border-bottom: 2px solid #2c7df7;
+        }
+        .search-box {
+            padding: 12px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px;
+            background: #242f3a;
+            border: none;
+            border-radius: 24px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        .contacts-list, .channels-list, .favorites-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .contact-item, .channel-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            color: white;
+            transition: background 0.2s;
+            animation: fadeIn 0.2s ease;
+        }
+        .contact-item:hover, .channel-item:hover { background: #242f3a; }
+        .contact-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-size: cover;
+            background-color: #2c7df7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0e1621;
+        }
+        .chat-header {
+            padding: 16px;
+            background: #17212b;
+            border-bottom: 1px solid #2c3e4e;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .message {
+            max-width: 70%;
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.2s ease;
+        }
+        .message.outgoing { align-self: flex-end; }
+        .message.incoming { align-self: flex-start; }
+        .bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+        .outgoing .bubble {
+            background: #2b5278;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .incoming .bubble {
+            background: #1e2a36;
+            color: white;
+            border-bottom-left-radius: 4px;
+        }
+        .message-time {
+            font-size: 10px;
+            color: #8e9eab;
+            margin-top: 4px;
+            margin-left: 8px;
+        }
+        .input-area {
+            padding: 12px;
+            background: #17212b;
+            display: flex;
+            gap: 10px;
+        }
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 24px;
+            border: none;
+            background: #242f3a;
+            color: white;
+            font-family: inherit;
+            font-size: 15px;
+        }
+        .input-area button {
+            background: #2c7df7;
+            border: none;
+            width: 44px;
+            border-radius: 30px;
+            color: white;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .premium-badge { color: gold; font-size: 14px; margin-left: 4px; }
+        .verified-badge { color: #2c7df7; font-size: 14px; }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #17212b;
+            padding: 24px;
+            border-radius: 28px;
+            width: 400px;
+            color: white;
+        }
+        .gift-item {
+            display: inline-block;
+            margin: 8px;
+            text-align: center;
+            cursor: pointer;
+            padding: 12px;
+            border-radius: 20px;
+            background: #242f3a;
+            transition: transform 0.1s;
+        }
+        .gift-item:active { transform: scale(0.95); }
+        .gift-animation {
+            position: fixed;
+            font-size: 48px;
+            pointer-events: none;
+            animation: floatGift 1s ease-out forwards;
+            z-index: 9999;
+        }
+        .admin-user-item, .admin-channel-item {
+            border-bottom: 1px solid #2c3e4e;
+            padding: 12px;
+        }
+        .favorite-star {
+            cursor: pointer;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+<div id="auth" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div class="modal-content" style="width: 340px;">
+        <h2 id="authTitle">Вход</h2>
+        <input type="text" id="loginUsername" placeholder="Логин" style="width:100%; margin:12px 0; padding:12px; background:#242f3a; border:none; border-radius:20px; color:white;">
+        <input type="password" id="loginPassword" placeholder="Пароль" style="width:100%; margin:12px 0; padding:12px; background:#242f3a; border:none; border-radius:20px; color:white;">
+        <button id="authBtn" style="width:100%; padding:12px; background:#2c7df7; border:none; border-radius:24px; color:white; font-weight:600; cursor:pointer;">Войти</button>
+        <div class="switch" id="switchAuth" style="text-align:center; margin-top:15px; color:#8e9eab; cursor:pointer;">Нет аккаунта? Зарегистрироваться</div>
+        <div id="authError" style="color:#e53935; margin-top:10px; font-size:13px;"></div>
+        <div style="margin-top:12px; font-size:12px; color:#8e9eab; text-align:center;">🔑 admin / admin123</div>
+    </div>
+</div>
+
+<div id="messenger" style="display: none;">
+    <div class="app">
+        <div class="sidebar">
+            <div class="user-header">
+                <div class="avatar" id="userAvatar">👤</div>
+                <div class="user-info">
+                    <div class="user-name" id="userDisplayName"></div>
+                    <div class="user-login" id="userLogin"></div>
+                </div>
+                <button class="btn-icon" id="settingsBtn">⚙️</button>
+                <button class="btn-icon" id="adminBtn" style="display:none;">👑</button>
+                <button class="btn-icon" id="logoutBtn">🚪</button>
+            </div>
+            <div class="tabs">
+                <div class="tab active" data-tab="contacts">💬 Контакты</div>
+                <div class="tab" data-tab="favorites">⭐ Избранное</div>
+                <div class="tab" data-tab="channels">📢 Каналы</div>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Поиск по логину...">
+            </div>
+            <div id="contactsList" class="contacts-list"></div>
+            <div id="favoritesList" class="contacts-list" style="display:none"></div>
+            <div id="channelsList" class="channels-list" style="display:none"></div>
+        </div>
+        <div class="chat-area">
+            <div class="chat-header">
+                <span id="chatTitle"></span>
+                <span id="chatBadge"></span>
+                <button id="giftButton" style="margin-left:auto; background:#2b5278; border:none; border-radius:20px; padding:6px 16px; color:white; cursor:pointer;">🎁 Подарок</button>
+            </div>
+            <div class="messages" id="messages"></div>
+            <div class="input-area" id="inputArea">
+                <input type="text" id="messageInput" placeholder="Сообщение...">
+                <button id="sendBtn">➤</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка настроек -->
+<div id="settingsModal" class="modal">
+    <div class="modal-content">
+        <h3>Настройки профиля</h3>
+        <input type="text" id="settingsDisplayName" placeholder="Имя" style="width:100%; margin:10px 0; padding:10px; background:#242f3a; border:none; border-radius:20px; color:white;">
+        <input type="text" id="settingsUsername" placeholder="Логин" style="width:100%; margin:10px 0; padding:10px; background:#242f3a; border:none; border-radius:20px; color:white;">
+        <input type="password" id="settingsPassword" placeholder="Новый пароль" style="width:100%; margin:10px 0; padding:10px; background:#242f3a; border:none; border-radius:20px; color:white;">
+        <input type="file" id="avatarFile" accept="image/jpeg,image/png" style="margin:10px 0;">
+        <button id="saveSettings" style="width:100%; padding:10px; background:#2c7df7; border:none; border-radius:24px; color:white; cursor:pointer;">Сохранить</button>
+        <button id="closeSettings" style="width:100%; margin-top:8px; padding:10px; background:#4a5c6c; border:none; border-radius:24px; color:white; cursor:pointer;">Отмена</button>
+        <button id="switchAccountBtn" style="width:100%; margin-top:12px; padding:10px; background:#e53935; border:none; border-radius:24px; color:white; cursor:pointer;">🔄 Сменить аккаунт</button>
+    </div>
+</div>
+
+<!-- Модалка подарков -->
+<div id="giftModal" class="modal">
+    <div class="modal-content">
+        <h3>Выберите подарок</h3>
+        <div id="giftsList"></div>
+        <button id="closeGiftModal" style="width:100%; margin-top:12px; padding:10px; background:#4a5c6c; border:none; border-radius:24px; color:white;">Отмена</button>
+    </div>
+</div>
+
+<!-- Модалка админки -->
+<div id="adminModal" class="modal">
+    <div class="modal-content" style="width: 600px;">
+        <h3>👑 Админ-панель</h3>
+        <div id="adminContent"></div>
+        <button id="closeAdminModal" style="width:100%; margin-top:16px; padding:10px; background:#2c7df7; border:none; border-radius:24px; color:white;">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    let currentUser = null;
+    let currentChat = null;
+    let users = [];
+    let channels = [];
+    let messages = [];
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let pollingInterval = null;
+
+    async function api(url, data) {
+        const res = await fetch(url, {
+            method: data ? 'POST' : 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            body: data ? JSON.stringify(data) : undefined
+        });
+        return res.json();
+    }
+
+    function saveFavorites() { localStorage.setItem('favorites', JSON.stringify(favorites)); }
+    function isFavorite(type, id) { return favorites.some(f => f.type === type && f.id == id); }
+    function toggleFavorite(type, id) {
+        if (isFavorite(type, id)) favorites = favorites.filter(f => !(f.type === type && f.id == id));
+        else favorites.push({ type, id });
+        saveFavorites();
+        renderContacts(); renderChannels(); renderFavorites();
+    }
+
+    async function loadUsers() { const data = await api('/api/users'); users = data; }
+    async function loadChannels() { const data = await api('/api/channels'); channels = data; }
+    async function loadMessages(type, id) { const data = await api(`/api/messages?type=${type}&id=${id}`); messages = data; }
+
+    async function renderContacts() {
+        await loadUsers();
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        let contacts = users.filter(u => u.id !== currentUser.id && !u.banned);
+        if (query) contacts = contacts.filter(u => u.username.toLowerCase().includes(query));
+        const container = document.getElementById('contactsList');
+        container.innerHTML = contacts.map(u => `
+            <div class="contact-item" data-id="${u.id}" data-type="user">
+                <div class="contact-avatar" style="background-image: url('${u.avatar || ''}');">${!u.avatar ? '👤' : ''}</div>
+                <div style="flex:1">
+                    <div>${escapeHtml(u.displayName || u.username)} ${u.verified ? '<span class="verified-badge">✔️</span>' : ''} ${u.premium ? '<span class="premium-badge">⭐</span>' : ''}</div>
+                    <div style="font-size:12px;">@${escapeHtml(u.username)}</div>
+                </div>
+                <span class="favorite-star" onclick="event.stopPropagation(); toggleFavorite('user', ${u.id})">${isFavorite('user', u.id) ? '⭐' : '☆'}</span>
+            </div>
+        `).join('');
+        document.querySelectorAll('.contact-item').forEach(el => {
+            el.addEventListener('click', () => openChat('user', parseInt(el.dataset.id)));
+        });
+    }
+
+    async function renderChannels() {
+        await loadChannels();
+        const container = document.getElementById('channelsList');
+        container.innerHTML = channels.map(c => `
+            <div class="channel-item" data-id="${c.id}" data-type="channel">
+                <div class="contact-avatar">#️⃣</div>
+                <div style="flex:1">
+                    <div>#${escapeHtml(c.name)} ${c.verified ? '<span class="verified-badge">✔️</span>' : ''} ${c.premium ? '<span class="premium-badge">👑</span>' : ''}</div>
+                    <div style="font-size:11px;">👥 ${c.subscribers?.length || 0} подписчиков</div>
+                </div>
+                <span class="favorite-star" onclick="event.stopPropagation(); toggleFavorite('channel', ${c.id})">${isFavorite('channel', c.id) ? '⭐' : '☆'}</span>
+            </div>
+        `).join('');
+        document.querySelectorAll('.channel-item').forEach(el => {
+            el.addEventListener('click', () => openChat('channel', parseInt(el.dataset.id)));
+        });
+    }
+
+    async function renderFavorites() {
+        const container = document.getElementById('favoritesList');
+        const favs = favorites.filter(f => {
+            if (f.type === 'user') return users.find(u => u.id == f.id);
+            return channels.find(c => c.id == f.id);
+        });
+        container.innerHTML = favs.map(f => {
+            if (f.type === 'user') {
+                const u = users.find(u => u.id == f.id);
+                if (!u) return '';
+                return `<div class="contact-item" data-id="${f.id}" data-type="user">
+                    <div class="contact-avatar" style="background-image: url('${u.avatar || ''}');">${!u.avatar ? '👤' : ''}</div>
+                    <div>${escapeHtml(u.displayName || u.username)} @${u.username}</div>
+                    <span class="favorite-star" onclick="event.stopPropagation(); toggleFavorite('user', ${f.id})">⭐</span>
+                </div>`;
+            } else {
+                const c = channels.find(c => c.id == f.id);
+                if (!c) return '';
+                return `<div class="channel-item" data-id="${f.id}" data-type="channel">
+                    <div class="contact-avatar">#️⃣</div>
+                    <div>#${escapeHtml(c.name)}</div>
+                    <span class="favorite-star" onclick="event.stopPropagation(); toggleFavorite('channel', ${f.id})">⭐</span>
+                </div>`;
+            }
+        }).join('');
+        document.querySelectorAll('#favoritesList .contact-item, #favoritesList .channel-item').forEach(el => {
+            el.addEventListener('click', () => openChat(el.dataset.type, parseInt(el.dataset.id)));
+        });
+    }
+
+    async function openChat(type, id) {
+        let name = '', verified = false;
+        if (type === 'user') {
+            const u = users.find(u => u.id == id);
+            if (!u) return;
+            name = u.displayName || u.username;
+            verified = u.verified;
+        } else {
+            const c = channels.find(c => c.id == id);
+            if (!c) return;
+            name = c.name;
+            verified = c.verified;
+        }
+        currentChat = { type, id, name, verified };
+        document.getElementById('chatTitle').innerHTML = `${type === 'user' ? '' : '#'}${escapeHtml(name)}`;
+        document.getElementById('chatBadge').innerHTML = verified ? '✔️' : '';
+        await loadMessages(type, id);
+        renderMessages();
+        
+        if (type === 'channel') {
+            const channel = channels.find(c => c.id == id);
+            const canWrite = currentUser.role === 'admin' || channel.writeAccess === 'all' || channel.ownerId === currentUser.id;
+            document.getElementById('inputArea').style.display = canWrite ? 'flex' : 'none';
+        } else {
+            document.getElementById('inputArea').style.display = 'flex';
+        }
+    }
+
+    function renderMessages() {
+        const container = document.getElementById('messages');
+        container.innerHTML = messages.map(m => {
+            const isOut = m.fromUserId === currentUser.id;
+            const time = new Date(m.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+            const sender = users.find(u => u.id == m.fromUserId);
+            return `
+                <div class="message ${isOut ? 'outgoing' : 'incoming'}">
+                    ${!isOut && currentChat?.type === 'channel' ? `<div style="font-size:12px; color:#8e9eab; margin-bottom:4px;">${escapeHtml(sender?.displayName || sender?.username)}</div>` : ''}
+                    <div class="bubble">${escapeHtml(m.text)}</div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+        }).join('');
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const text = input.value.trim();
+        if (!text || !currentChat) return;
+        if (currentUser.banned) { alert('Вы забанены'); return; }
+        await api('/api/messages', {
+            type: currentChat.type === 'user' ? 'private' : 'channel',
+            fromUserId: currentUser.id,
+            toId: currentChat.id,
+            text
+        });
+        input.value = '';
+        await loadMessages(currentChat.type, currentChat.id);
+        renderMessages();
+    }
+
+    const gifts = [
+        { emoji: '🎂', name: 'Торт', price: 50 },
+        { emoji: '💐', name: 'Цветы', price: 30 },
+        { emoji: '🧸', name: 'Мишка', price: 100 },
+        { emoji: '💎', name: 'Драгоценность', price: 200 },
+        { emoji: '🎮', name: 'Игра', price: 150 },
+        { emoji: '❤️', name: 'Сердце', price: 20 }
+    ];
+
+    function showGiftAnimation(emoji) {
+        const div = document.createElement('div');
+        div.className = 'gift-animation';
+        div.innerText = emoji;
+        div.style.left = Math.random() * (window.innerWidth - 100) + 'px';
+        div.style.top = (window.innerHeight - 150) + 'px';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 1000);
+    }
+
+    function showGiftModal() {
+        if (!currentChat) return;
+        const container = document.getElementById('giftsList');
+        container.innerHTML = gifts.map(g => `
+            <div class="gift-item" data-emoji="${g.emoji}" data-name="${g.name}">
+                <div style="font-size:48px;">${g.emoji}</div>
+                <div>${g.name}</div>
+                <div style="font-size:11px;">${g.price} руб.</div>
+            </div>
+        `).join('');
+        document.getElementById('giftModal').style.display = 'flex';
+        document.querySelectorAll('.gift-item').forEach(el => {
+            el.addEventListener('click', async () => {
+                const emoji = el.dataset.emoji;
+                const name = el.dataset.name;
+                if (confirm(`Отправить подарок "${name}"? (Демо-оплата)`)) {
+                    showGiftAnimation(emoji);
+                    await api('/api/messages', {
+                        type: currentChat.type === 'user' ? 'private' : 'channel',
+                        fromUserId: currentUser.id,
+                        toId: currentChat.id,
+                        text: `🎁 Подарок: ${name} ${emoji}`
+                    });
+                    await loadMessages(currentChat.type, currentChat.id);
+                    renderMessages();
+                    document.getElementById('giftModal').style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Админка
+    async function renderAdminPanel() {
+        await loadUsers();
+        await loadChannels();
+        const container = document.getElementById('adminContent');
+        container.innerHTML = `
+            <h4>👥 Пользователи</h4>
+            ${users.map(u => `
+                <div class="admin-user-item">
+                    <strong>${escapeHtml(u.displayName || u.username)}</strong> (@${u.username})
+                    ${u.verified ? '✔️' : ''} ${u.premium ? '⭐' : ''} ${u.banned ? '🔨' : ''}
+                    <div style="margin-top:8px;">
+                        <button onclick="adminVerifyUser(${u.id})">${u.verified ? 'Снять ✔️' : 'Дать ✔️'}</button>
+                        <button onclick="adminBanUser(${u.id})">${u.banned ? 'Разбанить' : 'Забанить'}</button>
+                        <button onclick="adminPremiumUser(${u.id})">${u.premium ? 'Снять ⭐' : 'Дать премиум'}</button>
+                        ${u.role !== 'admin' ? `<button onclick="adminMakeAdmin(${u.id})">Сделать админом</button>` : ''}
+                    </div>
+                </div>
+            `).join('')}
+            <h4 style="margin-top:20px;">📢 Каналы</h4>
+            ${channels.map(c => `
+                <div class="admin-channel-item">
+                    <strong>#${escapeHtml(c.name)}</strong> (подписчиков: ${c.subscribers?.length || 0})
+                    <div style="margin-top:8px;">
+                        <button onclick="adminVerifyChannel(${c.id})">${c.verified ? 'Снять ✔️' : 'Дать ✔️'}</button>
+                        <button onclick="adminAddSubs(${c.id})">➕ Накрутить 1000 сабов</button>
+                        <button onclick="adminDeleteChannel(${c.id})">🗑️ Удалить</button>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+        document.getElementById('adminModal').style.display = 'flex';
+    }
+
+    window.adminVerifyUser = async (id) => {
+        const u = users.find(u => u.id === id);
+        if (u) { u.verified = !u.verified; await fetch('/api/admin/verify-user', { method: 'POST', body: JSON.stringify({ userId: id, verified: u.verified }), headers: { 'Content-Type': 'application/json' } }); }
+        renderAdminPanel(); renderContacts();
+    };
+    window.adminBanUser = async (id) => {
+        const u = users.find(u => u.id === id);
+        if (u && u.id !== currentUser.id) { u.banned = !u.banned; await fetch('/api/admin/ban-user', { method: 'POST', body: JSON.stringify({ userId: id, banned: u.banned }), headers: { 'Content-Type': 'application/json' } }); }
+        renderAdminPanel(); renderContacts();
+    };
+    window.adminPremiumUser = async (id) => {
+        const u = users.find(u => u.id === id);
+        if (u) { u.premium = !u.premium; await fetch('/api/admin/give-premium', { method: 'POST', body: JSON.stringify({ userId: id, durationMonths: 12 }), headers: { 'Content-Type': 'application/json' } }); }
+        renderAdminPanel(); renderContacts();
+    };
+    window.adminMakeAdmin = async (id) => {
+        await fetch('/api/admin/make-admin', { method: 'POST', body: JSON.stringify({ userId: id }), headers: { 'Content-Type': 'application/json' } });
+        renderAdminPanel();
+    };
+    window.adminVerifyChannel = async (id) => {
+        const c = channels.find(c => c.id === id);
+        if (c) { c.verified = !c.verified; await fetch('/api/admin/verify-channel', { method: 'POST', body: JSON.stringify({ channelId: id, verified: c.verified }), headers: { 'Content-Type': 'application/json' } }); }
+        renderAdminPanel(); renderChannels();
+    };
+    window.adminAddSubs = async (id) => {
+        await fetch('/api/admin/add-subs', { method: 'POST', body: JSON.stringify({ channelId: id, amount: 1000 }), headers: { 'Content-Type': 'application/json' } });
+        renderAdminPanel(); renderChannels();
+    };
+    window.adminDeleteChannel = async (id) => {
+        if (confirm('Удалить канал?')) {
+            await fetch('/api/admin/delete-channel', { method: 'POST', body: JSON.stringify({ channelId: id }), headers: { 'Content-Type': 'application/json' } });
+            if (currentChat?.type === 'channel' && currentChat.id === id) currentChat = null;
+            renderAdminPanel(); renderChannels();
+        }
+    };
+
+    // Настройки профиля
+    async function saveProfile() {
+        const displayName = document.getElementById('settingsDisplayName').value.trim();
+        const username = document.getElementById('settingsUsername').value.trim();
+        const password = document.getElementById('settingsPassword').value.trim();
+        const file = document.getElementById('avatarFile').files[0];
+        if (!displayName || !username) return alert('Имя и логин обязательны');
+        
+        let avatar = currentUser.avatar;
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                avatar = e.target.result;
+                await fetch('/api/update-profile', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUser.id, displayName, username, password, avatar })
+                });
+                updateUI(displayName, username, avatar);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            await fetch('/api/update-profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, displayName, username, password, avatar: currentUser.avatar })
+            });
+            updateUI(displayName, username, currentUser.avatar);
+        }
+    }
+    
+    function updateUI(displayName, username, avatar) {
+        currentUser.displayName = displayName;
+        currentUser.username = username;
+        currentUser.avatar = avatar;
+        document.getElementById('userDisplayName').innerText = displayName;
+        document.getElementById('userLogin').innerText = '@' + username;
+        document.getElementById('userAvatar').style.backgroundImage = avatar ? `url('${avatar}')` : '';
+        document.getElementById('userAvatar').innerText = avatar ? '' : '👤';
+        document.getElementById('settingsModal').style.display = 'none';
+        renderContacts();
+    }
+
+    // Авторизация
+    async function login() {
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+        const isLogin = document.getElementById('authTitle').innerText === 'Вход';
+        if (isLogin) {
+            const data = await api('/api/login', { username, password });
+            if (data.error) { document.getElementById('authError').innerText = data.error; return; }
+            currentUser = data;
+            document.getElementById('auth').style.display = 'none';
+            document.getElementById('messenger').style.display = 'block';
+            document.getElementById('userDisplayName').innerText = currentUser.displayName;
+            document.getElementById('userLogin').innerText = '@' + currentUser.username;
+            if (currentUser.avatar) document.getElementById('userAvatar').style.backgroundImage = `url('${currentUser.avatar}')`;
+            if (currentUser.role === 'admin') document.getElementById('adminBtn').style.display = 'inline-block';
+            renderContacts(); renderChannels(); renderFavorites();
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(async () => {
+                if (currentChat) { await loadMessages(currentChat.type, currentChat.id); renderMessages(); }
+                if (document.getElementById('contactsList').style.display !== 'none') renderContacts();
+                if (document.getElementById('channelsList').style.display !== 'none') renderChannels();
+            }, 2000);
+        } else {
+            const data = await api('/api/register', { username, password });
+            if (data.error) { document.getElementById('authError').innerText = data.error; return; }
+            document.getElementById('authTitle').innerText = 'Вход';
+            document.getElementById('authBtn').innerText = 'Войти';
+            document.getElementById('switchAuth').innerText = 'Нет аккаунта? Регистрация';
+            document.getElementById('authError').innerText = '✅ Регистрация успешна! Войдите.';
+        }
+    }
+
+    function switchAuth() {
+        const title = document.getElementById('authTitle');
+        const btn = document.getElementById('authBtn');
+        const sw = document.getElementById('switchAuth');
+        if (title.innerText === 'Вход') {
+            title.innerText = 'Регистрация'; btn.innerText = 'Зарегистрироваться'; sw.innerText = 'Уже есть аккаунт? Войти';
+        } else {
+            title.innerText = 'Вход'; btn.innerText = 'Войти'; sw.innerText = 'Нет аккаунта? Регистрация';
+        }
+        document.getElementById('authError').innerText = '';
+    }
+
+    function logout() { currentUser = null; if (pollingInterval) clearInterval(pollingInterval); location.reload(); }
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
+
+    document.getElementById('authBtn').addEventListener('click', login);
+    document.getElementById('switchAuth').addEventListener('click', switchAuth);
+    document.getElementById('logoutBtn').addEventListener('click', logout);
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('messageInput').addEventListener('keypress', e => { if (e.key === 'Enter') sendMessage(); });
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+        document.getElementById('settingsDisplayName').value = currentUser.displayName;
+        document.getElementById('settingsUsername').value = currentUser.username;
+        document.getElementById('settingsModal').style.display = 'flex';
+    });
+    document.getElementById('saveSettings').addEventListener('click', saveProfile);
+    document.getElementById('closeSettings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
+    document.getElementById('switchAccountBtn').addEventListener('click', logout);
+    document.getElementById('giftButton').addEventListener('click', showGiftModal);
+    document.getElementById('closeGiftModal').addEventListener('click', () => document.getElementById('giftModal').style.display = 'none');
+    document.getElementById('adminBtn').addEventListener('click', renderAdminPanel);
+    document.getElementById('closeAdminModal').addEventListener('click', () => document.getElementById('adminModal').style.display = 'none');
+    document.getElementById('searchInput').addEventListener('input', () => {
+        if (document.getElementById('contactsList').style.display !== 'none') renderContacts();
+        else renderChannels();
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('contactsList').style.display = target === 'contacts' ? 'block' : 'none';
+            document.getElementById('favoritesList').style.display = target === 'favorites' ? 'block' : 'none';
+            document.getElementById('channelsList').style.display = target === 'channels' ? 'block' : 'none';
+            if (target === 'contacts') renderContacts();
+            if (target === 'favorites') renderFavorites();
+            if (target === 'channels') renderChannels();
+        });
+    });
+</script>
+</body>
+</html>
